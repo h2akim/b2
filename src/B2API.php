@@ -123,7 +123,7 @@ class B2API {
         $key = array_search($bucketName, array_column($bucketList['buckets'], 'bucketName'));
 
         if (is_null($key) || empty($key)) {
-            return 'Error: Bucket not found!';
+            return 'Error: Bucket name not found!';
         }
 
         return $this->b2_delete_bucket($bucketList['buckets'][$key]['bucketId']);
@@ -241,7 +241,7 @@ class B2API {
         } catch (ClientException $e) {
             $test = $e->getMessage();
             die($test);
-        }
     }
+}
 
 }
