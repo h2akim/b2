@@ -70,15 +70,15 @@ class B2API {
             'Authorization: ' . $this->authToken
         ];
 
-        $response = $this->client->request(
-            'POST', $this->apiUrl.__FUNCTION__, [
-                'curl' => [
-                    CURLOPT_POSTFIELDS => $fields,
-                    CURLOPT_HTTPHEADER => $headers,
-                    CURLOPT_RETURNTRANSFER => true
-                ]
+        $curl_opts = [
+            'curl' => [
+                CURLOPT_POSTFIELDS => $fields,
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_RETURNTRANSFER => true
             ]
-        );
+        ];
+
+        $request = $this->postRequest(__FUNCTION__, $curl_opts);
 
         return json_decode($response->getBody());
 
@@ -154,6 +154,20 @@ class B2API {
 
     public function b2_upload_part() {
 
+    }
+
+    private function getRequest($functionName, $curl_opts, $apiUrl = false) {
+        $url = ($apiUrl) ? $this->apiUrl : $this->authorizationUrl;
+        return $this->client->request(
+            'GET', $url.__FUNCTION__, $curl_opts
+        );
+    }
+
+    private function postReqeust($functionName, $curl_opts, $apiUrl = true) {
+        $url = (!$apiUrl) ? $this->apiUrl : $this->authorizationUrl;
+        return $this->client->request(
+            'POST', $url.__FUNCTION__, $curl_opts
+        );
     }
 
 }
