@@ -1,0 +1,25 @@
+{
+    "name": "h2akim/b2",
+    "description": "BackBlaze API",
+    "keyword": ["filesystem", "api", "backblaze", "client"],
+    "license": "MIT",
+    "require": {
+        "guzzlehttp/guzzle": "^6.1"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^5.2"
+    },
+    "authors": [
+        {
+            "name": "Hakim Razalan",
+            "email": "hakim.razalan@gmail.com"
+        },
+        {
+            "name": "Codon Genomics Sdn Bhd",
+            "email": "cg@codongenomics.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {"H2akim\\B2\\": "src/"}
+    }
+}
