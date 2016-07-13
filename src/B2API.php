@@ -23,6 +23,7 @@ class B2API {
         $this->client = new Client();
 
         $this->b2_authorize_account();
+
     }
 
     public function b2_authorize_account() {
@@ -33,14 +34,14 @@ class B2API {
             "Authorization: Basic " . $credentials
         ];
 
-        $response = $this->client->request(
-            'GET', $this->authorizationUrl.__FUNCTION__, [
-                'curl' => [
-                    CURLOPT_HTTPHEADER => $headers,
-                    CURLOPT_RETURNTRANSFER => true
-                ]
+        $curl_opts = [
+            'curl' => [
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_RETURNTRANSFER => true
             ]
-        );
+        ];
+
+        $response = $this->getRequest(__FUNCTION__, $curl_opts);
 
         /* Set Auth Token & Download Url */
         try {
@@ -60,16 +61,19 @@ class B2API {
 
     public function b2_create_bucket($bucketName, $bucketType = 'allPrivate') {
 
+        /* Set Authorization */
+        $headers = [
+            'Authorization: ' . $this->authToken
+        ];
+
+        /* Set POST fields */
         $fields = json_encode([
             'accountId' => $this->accountId,
             'bucketName' => $bucketName,
             'bucketType' => $bucketType
         ]);
 
-        $headers = [
-            'Authorization: ' . $this->authToken
-        ];
-
+        /* Set CURL options */
         $curl_opts = [
             'curl' => [
                 CURLOPT_POSTFIELDS => $fields,
@@ -78,13 +82,43 @@ class B2API {
             ]
         ];
 
-        $request = $this->postRequest(__FUNCTION__, $curl_opts);
+        $response = $this->postRequest(__FUNCTION__, $curl_opts);
 
         return json_decode($response->getBody());
 
     }
 
-    public function b2_delete_bucket() {
+    public function b2_delete_bucket($bucketId) {
+
+        /* Set Authorization */
+        $headers = [
+            'Authorization: ' . $this->authToken
+        ];
+
+        /* Set POST fields */
+        $fields = json_encode([
+            'accountId' => $this->accountId,
+            'bucketId' => $bucketId,
+        ]);
+
+        /* Set CURL options */
+        $curl_opts = [
+            'curl' => [
+                CURLOPT_POSTFIELDS => $fields,
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_RETURNTRANSFER => true
+            ]
+        ];
+
+        $response = $this->postRequest(__FUNCTION__, $curl_opts);
+
+        return json_decode($response->getBody());
+
+    }
+
+    public function b2_delete_bucket_by_name() {
+
+
 
     }
 
@@ -121,6 +155,28 @@ class B2API {
     }
 
     public function b2_list_buckets() {
+
+        /* Set Authorization */
+        $headers = [
+            'Authorization: ' . $this->authToken
+        ];
+
+        $fields = json_encode([
+            'accountId' => $this->accountId
+        ]);
+
+        /* Set CURL options */
+        $curl_opts = [
+            'curl' => [
+                CURLOPT_POSTFIELDS => $fields,
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_RETURNTRANSFER => true
+            ]
+        ];
+
+        $response = $this->postRequest(__FUNCTION__, $curl_opts);
+
+        return json_decode($response->getBody());
 
     }
 
@@ -159,15 +215,19 @@ class B2API {
     private function getRequest($functionName, $curl_opts, $apiUrl = false) {
         $url = ($apiUrl) ? $this->apiUrl : $this->authorizationUrl;
         return $this->client->request(
-            'GET', $url.__FUNCTION__, $curl_opts
+            'GET', $url.$functionName, $curl_opts
         );
     }
 
-    private function postReqeust($functionName, $curl_opts, $apiUrl = true) {
-        $url = (!$apiUrl) ? $this->apiUrl : $this->authorizationUrl;
+    private function postRequest($functionName, $curl_opts, $apiUrl = true) {
+        $url = ($apiUrl) ? $this->apiUrl : $this->authorizationUrl;
         return $this->client->request(
-            'POST', $url.__FUNCTION__, $curl_opts
+            'POST', $url.$functionName, $curl_opts
         );
+    }
+
+    private function processResponse($response) {
+
     }
 
 }
