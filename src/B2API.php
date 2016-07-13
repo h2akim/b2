@@ -3,6 +3,7 @@
 namespace H2akim\B2;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ClientException;
 
 class B2API {
 
@@ -116,9 +117,16 @@ class B2API {
 
     }
 
-    public function b2_delete_bucket_by_name() {
+    public function b2_delete_bucket_by_name($bucketName) {
 
+        $bucketList = json_decode(json_encode($this->b2_list_buckets()), true);
+        $key = array_search($bucketName, array_column($bucketList['buckets'], 'bucketName'));
 
+        if (is_null($key) || empty($key)) {
+            return 'Error: Bucket not found!';
+        }
+
+        return $this->b2_delete_bucket($bucketList['buckets'][$key]['bucketId']);
 
     }
 
@@ -214,20 +222,26 @@ class B2API {
 
     private function getRequest($functionName, $curl_opts, $apiUrl = false) {
         $url = ($apiUrl) ? $this->apiUrl : $this->authorizationUrl;
-        return $this->client->request(
-            'GET', $url.$functionName, $curl_opts
-        );
+        try {
+            return $this->client->request(
+                'GET', $url.$functionName, $curl_opts
+            );
+        } catch (ClientException $e) {
+            $test = $e->getMessage();
+            die($test);
+        }
     }
 
     private function postRequest($functionName, $curl_opts, $apiUrl = true) {
         $url = ($apiUrl) ? $this->apiUrl : $this->authorizationUrl;
-        return $this->client->request(
-            'POST', $url.$functionName, $curl_opts
-        );
-    }
-
-    private function processResponse($response) {
-
+        try {
+            return $this->client->request(
+                'POST', $url.$functionName, $curl_opts
+            );
+        } catch (ClientException $e) {
+            $test = $e->getMessage();
+            die($test);
+        }
     }
 
 }
