@@ -1,2 +1,2 @@
-# b2
-Backblaze API
+# b2-php
+(PHP) Backblaze Cloud Storage API
