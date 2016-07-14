@@ -7,6 +7,7 @@ use GuzzleHttp\Exception\ClientException;
 
 class B2API {
 
+    protected $errorCode = [ 400, 401, 403, 429, 500, 503 ];
     protected $authorizationUrl = "https://api.backblaze.com/b2api/v1/";
     protected $apiUrl;
 
@@ -46,7 +47,7 @@ class B2API {
 
         /* Set Auth Token & Download Url */
         try {
-            $result = json_decode($response->getBody());
+            $result = json_decode($response);
             $this->authToken = $result->authorizationToken;
             $this->apiUrl = $result->apiUrl.'/b2api/v1/';
             $this->downloadUrl = $result->downloadUrl;
@@ -84,8 +85,11 @@ class B2API {
         ];
 
         $response = $this->postRequest(__FUNCTION__, $curl_opts);
+        if (isset($response->status)
+            && in_array($response->status, $this->errorCode))
+                return json_encode($response);
 
-        return json_decode($response->getBody());
+        return $this->toJson($response);
 
     }
 
@@ -112,8 +116,11 @@ class B2API {
         ];
 
         $response = $this->postRequest(__FUNCTION__, $curl_opts);
+        if (isset($response->status)
+            && in_array($response->status, $this->errorCode))
+                return json_encode($response);
 
-        return json_decode($response->getBody());
+        return $this->toJson($response);
 
     }
 
@@ -123,7 +130,7 @@ class B2API {
         $key = array_search($bucketName, array_column($bucketList['buckets'], 'bucketName'));
 
         if (is_null($key) || empty($key)) {
-            return 'Error: Bucket name not found!';
+            return json_encode([ 'message' => 'Bucket name not found' ]);
         }
 
         return $this->b2_delete_bucket($bucketList['buckets'][$key]['bucketId']);
@@ -184,7 +191,7 @@ class B2API {
 
         $response = $this->postRequest(__FUNCTION__, $curl_opts);
 
-        return json_decode($response->getBody());
+        return json_decode($response);
 
     }
 
@@ -220,15 +227,19 @@ class B2API {
 
     }
 
+    private function toJson($json) {
+        return json_encode(json_decode($json));
+    }
+
     private function getRequest($functionName, $curl_opts, $apiUrl = false) {
         $url = ($apiUrl) ? $this->apiUrl : $this->authorizationUrl;
         try {
             return $this->client->request(
                 'GET', $url.$functionName, $curl_opts
-            );
+            )->getBody();
         } catch (ClientException $e) {
-            $test = $e->getMessage();
-            die($test);
+            $response = $e->getResponse();
+            return json_decode($response->getBody()->getContents());
         }
     }
 
@@ -237,11 +248,12 @@ class B2API {
         try {
             return $this->client->request(
                 'POST', $url.$functionName, $curl_opts
-            );
+            )->getBody();
         } catch (ClientException $e) {
-            $test = $e->getMessage();
-            die($test);
+            $response = $e->getResponse();
+            return json_decode($response->getBody()->getContents());
     }
+
 }
 
 }
