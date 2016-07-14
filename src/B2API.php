@@ -19,13 +19,12 @@ class B2API {
     protected $authToken;
     protected $downloadUrl;
 
-    public function __construct($accountId, $applicationKey) {
-        $this->accountId = $accountId;
-        $this->applicationKey = $applicationKey;
+    public function __construct($credentials) {
+        $this->accountId = $credentials['accountId'];
+        $this->applicationKey = $credentials['applicationKey'];
         $this->client = new Client();
 
         $this->b2_authorize_account();
-
     }
 
     public function b2_authorize_account() {
@@ -50,7 +49,7 @@ class B2API {
             $result = json_decode($response);
             $this->authToken = $result->authorizationToken;
             $this->apiUrl = $result->apiUrl.'/b2api/v1/';
-            $this->downloadUrl = $result->downloadUrl;
+            $this->downloadUrl = $result->downloadUrl.'/b2api/v1/';
         } catch (Exception $e) {
             throw new Exception('Not Authorized');
         }
@@ -63,64 +62,26 @@ class B2API {
 
     public function b2_create_bucket($bucketName, $bucketType = 'allPrivate') {
 
-        /* Set Authorization */
-        $headers = [
-            'Authorization: ' . $this->authToken
-        ];
-
-        /* Set POST fields */
-        $fields = json_encode([
+        $curl_opts = $this->preparePostField([
             'accountId' => $this->accountId,
             'bucketName' => $bucketName,
             'bucketType' => $bucketType
         ]);
 
-        /* Set CURL options */
-        $curl_opts = [
-            'curl' => [
-                CURLOPT_POSTFIELDS => $fields,
-                CURLOPT_HTTPHEADER => $headers,
-                CURLOPT_RETURNTRANSFER => true
-            ]
-        ];
-
         $response = $this->postRequest(__FUNCTION__, $curl_opts);
-        if (isset($response->status)
-            && in_array($response->status, $this->errorCode))
-                return json_encode($response);
-
-        return $this->toJson($response);
+        return $this->returnResponse($response);
 
     }
 
     public function b2_delete_bucket($bucketId) {
 
-        /* Set Authorization */
-        $headers = [
-            'Authorization: ' . $this->authToken
-        ];
-
-        /* Set POST fields */
-        $fields = json_encode([
+        $curl_opts = $this->preparePostField([
             'accountId' => $this->accountId,
             'bucketId' => $bucketId,
         ]);
 
-        /* Set CURL options */
-        $curl_opts = [
-            'curl' => [
-                CURLOPT_POSTFIELDS => $fields,
-                CURLOPT_HTTPHEADER => $headers,
-                CURLOPT_RETURNTRANSFER => true
-            ]
-        ];
-
         $response = $this->postRequest(__FUNCTION__, $curl_opts);
-        if (isset($response->status)
-            && in_array($response->status, $this->errorCode))
-                return json_encode($response);
-
-        return $this->toJson($response);
+        return $this->returnResponse($response);
 
     }
 
@@ -129,7 +90,7 @@ class B2API {
         $bucketList = json_decode(json_encode($this->b2_list_buckets()), true);
         $key = array_search($bucketName, array_column($bucketList['buckets'], 'bucketName'));
 
-        if (is_null($key) || empty($key)) {
+        if (is_null($key)) {
             return json_encode([ 'message' => 'Bucket name not found' ]);
         }
 
@@ -138,10 +99,37 @@ class B2API {
     }
 
     public function b2_delete_file_version() {
-
+        $curl_opts = $this->preparePostField([
+            "fileId" => $file_id,
+            "fileName" => $file_name
+        ]);
+        $response = $this->postRequest(__FUNCTION__, $curl_opts);
+        return $this->returnResponse($response);
     }
 
-    public function b2_download_file_by_id() {
+    public function b2_download_file_by_id($fileId, $options = array(), $curl_opts = array()) {
+
+        $curl_opts = [
+            'curl' => [
+                CURLOPT_HTTPHEADER => [
+                    'Authorization: ' . $this->authToken
+                ],
+                CURLOPT_RETURNTRANSFER => true
+            ],
+            'sink' => isset($options['saveTo']) ? $options['saveTo'] : null
+        ];
+
+        try {
+            $response = $this->client->request(
+                'GET',
+                $this->downloadUrl.__FUNCTION__.'?fileId='.$fileId,
+                $curl_opts
+            );
+            return isset($options['saveTo']) ? 'OK' : $response;
+        } catch (ClientException $e) {
+            $response = $e->getResponse();
+            return $this->toJson($response->getBody()->getContents());
+        }
 
     }
 
@@ -171,27 +159,12 @@ class B2API {
 
     public function b2_list_buckets() {
 
-        /* Set Authorization */
-        $headers = [
-            'Authorization: ' . $this->authToken
-        ];
-
-        $fields = json_encode([
+        $curl_opts = $this->preparePostField([
             'accountId' => $this->accountId
         ]);
 
-        /* Set CURL options */
-        $curl_opts = [
-            'curl' => [
-                CURLOPT_POSTFIELDS => $fields,
-                CURLOPT_HTTPHEADER => $headers,
-                CURLOPT_RETURNTRANSFER => true
-            ]
-        ];
-
         $response = $this->postRequest(__FUNCTION__, $curl_opts);
-
-        return json_decode($response);
+        return $this->returnResponse($response);
 
     }
 
@@ -231,6 +204,14 @@ class B2API {
         return json_encode(json_decode($json));
     }
 
+    private function returnResponse($response, $class = false) {
+        if (isset($response->status)
+            && in_array($response->status, $this->errorCode))
+                return json_encode($response);
+
+        return $this->toJson($response);
+    }
+
     private function getRequest($functionName, $curl_opts, $apiUrl = false) {
         $url = ($apiUrl) ? $this->apiUrl : $this->authorizationUrl;
         try {
@@ -252,8 +233,28 @@ class B2API {
         } catch (ClientException $e) {
             $response = $e->getResponse();
             return json_decode($response->getBody()->getContents());
+        }
     }
 
-}
+    private function preparePostField($userField = array()) {
+        /* Set Authorization */
+        $headers = [
+            'Authorization: ' . $this->authToken
+        ];
+
+        /* Set POST fields */
+        $fields = json_encode($userField);
+
+        /* Set CURL options */
+        $curl_opts = [
+            'curl' => [
+                CURLOPT_POSTFIELDS => $fields,
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_RETURNTRANSFER => true
+            ]
+        ];
+
+        return $curl_opts;
+    }
 
 }
