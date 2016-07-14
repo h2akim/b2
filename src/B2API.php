@@ -249,7 +249,7 @@ class B2API {
     }
 
     private function toJson($json) {
-        return json_encode(json_decode($json));
+        return json_decode($json, true);
     }
 
     private function returnResponse($response, $class = false) {
