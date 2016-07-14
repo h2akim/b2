@@ -225,18 +225,15 @@ class B2API {
 
                 $uploadUrl = json_decode($this->b2_get_upload_url($bucketOption));
 
-                // continue later
-                $file = fread();
+                $file = fread($options['filePath'], filesize($options['filePath']));
 
                 if (!isset($uploadUrl->status)) {
-                $curl_opts = $this->preparePostField([
-
-                ],
+                $curl_opts = $this->preparePostField([ $file ],
                 [
-                    "Authorization: " . $upload_auth_token,
-                    "X-Bz-File-Name: " . $file_name,
+                    "Authorization: " . $uploadUrl->authorizationToken,
+                    "X-Bz-File-Name: " . $options['filePath'],
                     "Content-Type: " . 'b2/x-auto',
-                    "X-Bz-Content-Sha1: " . $sha1_of_file_data
+                    "X-Bz-Content-Sha1: " . $sha1_file
                 ]);
 
                 }
@@ -287,11 +284,22 @@ class B2API {
         }
     }
 
-    private function preparePostField($userField = [], $userHeader = []) {
+    private function preparePostField($userField = [], $userHeader = [], $merge = false) {
         /* Set Authorization */
-        $headers = array_merge([
+
+        $headers = [
             'Authorization: ' . $this->authToken
-        ], $userHeader);
+        ];
+
+        if (!empty($userHeader) && !$merge) {
+            $headers = $userHeader;
+        }
+
+        if ($merge) {
+            $headers = array_merge([
+                'Authorization: ' . $this->authToken
+            ], $userHeader);
+        }
 
         /* Set POST fields */
         $fields = json_encode($userField);
