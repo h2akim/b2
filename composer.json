@@ -13,10 +13,6 @@
         {
             "name": "Hakim Razalan",
             "email": "hakim.razalan@gmail.com"
-        },
-        {
-            "name": "Codon Genomics Sdn Bhd",
-            "email": "cg@codongenomics.com"
         }
     ],
     "autoload": {
