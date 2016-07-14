@@ -107,7 +107,7 @@ class B2API {
         return $this->returnResponse($response);
     }
 
-    public function b2_download_file_by_id($fileId, $options = array(), $curl_opts = array()) {
+    public function b2_download_file_by_id($fileId, $options = array()) {
 
         $curl_opts = [
             'curl' => [
@@ -149,7 +149,27 @@ class B2API {
 
     }
 
-    public function b2_get_upload_url() {
+    public function b2_get_upload_url($options = []) {
+
+        if (isset($options['bucketName'])) {
+            $bucketList = json_decode($this->b2_list_buckets(), true);
+            $key = array_search($options['bucketName'], array_column($bucketList['buckets'], 'bucketName'));
+
+            if (is_null($key)) {
+                return json_encode([ 'message' => 'Bucket name not found' ]);
+            }
+            $options['bucketId'] = $bucketList['buckets'][$key]['bucketId'];
+        }
+
+        if (isset($options['bucketId'])) {
+            $curl_opts = $this->preparePostField([
+                'bucketId' => $options['bucketId']
+            ]);
+            $response = $this->postRequest(__FUNCTION__, $curl_opts);
+            return $this->toJson($response);
+        } else {
+            return 'Please provide bucketId';
+        }
 
     }
 
@@ -192,7 +212,38 @@ class B2API {
 
     }
 
-    public function b2_upload_file() {
+    public function b2_upload_file($options = []) {
+
+        if ((isset($options['bucketName']) || isset($options['bucketId']))
+            && isset($options['filePath'])) {
+
+                if (isset($options['bucketName'])) {
+                    $bucketOption[] = [ 'bucketName' => $options['bucketName'] ];
+                } else {
+                    $bucketOption[] = [ 'bucketId' => $options['bucketId'] ];
+                }
+
+                $uploadUrl = json_decode($this->b2_get_upload_url($bucketOption));
+
+                // continue later
+                $file = fread();
+
+                if (!isset($uploadUrl->status)) {
+                $curl_opts = $this->preparePostField([
+
+                ],
+                [
+                    "Authorization: " . $upload_auth_token,
+                    "X-Bz-File-Name: " . $file_name,
+                    "Content-Type: " . 'b2/x-auto',
+                    "X-Bz-Content-Sha1: " . $sha1_of_file_data
+                ]);
+
+                }
+
+        } else {
+            return 'Please provide bucketName & filePath';
+        }
 
     }
 
@@ -220,7 +271,7 @@ class B2API {
             )->getBody();
         } catch (ClientException $e) {
             $response = $e->getResponse();
-            return json_decode($response->getBody()->getContents());
+            return $response->getBody()->getContents();
         }
     }
 
@@ -232,15 +283,15 @@ class B2API {
             )->getBody();
         } catch (ClientException $e) {
             $response = $e->getResponse();
-            return json_decode($response->getBody()->getContents());
+            return $response->getBody()->getContents();
         }
     }
 
-    private function preparePostField($userField = array()) {
+    private function preparePostField($userField = [], $userHeader = []) {
         /* Set Authorization */
-        $headers = [
+        $headers = array_merge([
             'Authorization: ' . $this->authToken
-        ];
+        ], $userHeader);
 
         /* Set POST fields */
         $fields = json_encode($userField);
