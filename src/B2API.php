@@ -57,7 +57,7 @@ class B2API {
     }
 
     public function b2_cancel_large_file() {
-
+        // to be implement
     }
 
     public function b2_create_bucket($bucketName, $bucketType = 'allPrivate') {
@@ -134,19 +134,19 @@ class B2API {
     }
 
     public function b2_download_file_by_name() {
-
+        // to be implement
     }
 
     public function b2_finish_large_file() {
-
+        // to be implement
     }
 
     public function b2_get_file_info() {
-
+        // to be implement
     }
 
     public function b2_get_upload_part_url() {
-
+        // to be implement
     }
 
     public function b2_get_upload_url($options = []) {
@@ -174,7 +174,7 @@ class B2API {
     }
 
     public function b2_hide_file() {
-
+        // to be implement
     }
 
     public function b2_list_buckets() {
@@ -188,28 +188,44 @@ class B2API {
 
     }
 
-    public function b2_list_file_names() {
+    public function b2_list_file_names(array $options) {
+
+        $fields = array();
+        $fields['bucketId'] =  (isset($options['bucketName'])) ? $this->getBucketIdFromName($options['bucketName']) : $bucketId;
+
+        /* optional parameters */
+        if (isset($options['startFileName'])) {
+            $fields['startFileName'] = $options['startFileName'];
+        }
+        if (isset($options['maxFileCount'])) {
+            $fields['maxFileCount'] = $options['maxFileCount'];
+        }
+
+        $curl_opts = $this->preparePostField($fields);
+
+        $response = $this->postRequest(__FUNCTION__, $curl_opts);
+        return $this->returnResponse($response);
 
     }
 
     public function b2_list_file_versions() {
-
+        // to be implement
     }
 
     public function b2_list_parts() {
-
+        // to be implement
     }
 
     public function b2_list_unfinished_large_files() {
-
+        // to be implement
     }
 
     public function b2_start_large_file() {
-
+        // to be implement
     }
 
     public function b2_update_bucket() {
-
+        // to be implement
     }
 
     public function b2_upload_file($options = []) {
@@ -245,6 +261,18 @@ class B2API {
     }
 
     public function b2_upload_part() {
+        // to be implement
+    }
+
+    private function getBucketIdFromName($bucketName) {
+        $bucketList = json_decode(json_encode($this->b2_list_buckets()), true);
+        $key = array_search($bucketName, array_column($bucketList['buckets'], 'bucketName'));
+
+        if (is_null($key)) {
+            return json_encode([ 'message' => 'Bucket name not found' ]);
+        }
+
+        return $bucketList['buckets'][$key]['bucketId'];
 
     }
 
@@ -256,7 +284,6 @@ class B2API {
         if (isset($response->status)
             && in_array($response->status, $this->errorCode))
                 return json_encode($response);
-
         return $this->toJson($response);
     }
 
