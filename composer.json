@@ -1,5 +1,5 @@
 {
-    "name": "h2akim/b2",
+    "name": "h2akim/b2-php",
     "description": "BackBlaze API",
     "keyword": ["filesystem", "api", "backblaze", "client"],
     "license": "MIT",

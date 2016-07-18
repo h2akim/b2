@@ -1,5 +1,6 @@
 # b2-php
 (PHP) Backblaze Cloud Storage API
+- This package is still under development
 
 - [x] b2_authorize_account
 - [ ] b2_cancel_large_file
