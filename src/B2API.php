@@ -49,7 +49,7 @@ class B2API {
             $result = json_decode($response);
             $this->authToken = $result->authorizationToken;
             $this->apiUrl = $result->apiUrl.'/b2api/v1/';
-            $this->downloadUrl = $result->downloadUrl.'/b2api/v1/';
+            $this->downloadUrl = $result->downloadUrl;
         } catch (Exception $e) {
             throw new Exception('Not Authorized');
         }
@@ -107,7 +107,7 @@ class B2API {
         return $this->returnResponse($response);
     }
 
-    public function b2_download_file_by_id($fileId, $options = array()) {
+    public function b2_download_file_by_id($options = array()) {
 
         $curl_opts = [
             'curl' => [
@@ -122,7 +122,7 @@ class B2API {
         try {
             $response = $this->client->request(
                 'GET',
-                $this->downloadUrl.__FUNCTION__.'?fileId='.$fileId,
+                $this->downloadUrl.'/b2api/v1/'.__FUNCTION__.'?fileId='.$options['fileId'],
                 $curl_opts
             );
             return isset($options['saveTo']) ? 'OK' : $response;
@@ -133,23 +133,62 @@ class B2API {
 
     }
 
-    public function b2_download_file_by_name() {
-        // to be implement
+    public function b2_download_file_by_name($options = array()) {
+
+        $curl_opts = [
+            'curl' => [
+                CURLOPT_HTTPHEADER => [
+                    'Authorization: ' . $this->authToken
+                ],
+                CURLOPT_RETURNTRANSFER => true
+            ],
+            'sink' => isset($options['saveTo']) ? $options['saveTo'] : null
+        ];
+
+        try {
+            $response = $this->client->request(
+                'GET',
+                $this->downloadUrl.'/file/'.$options['bucketName'].'/'.$options['fileName'],
+                $curl_opts
+            );
+            return isset($options['saveTo']) ? 'OK' : $response;
+        } catch (ClientException $e) {
+            $response = $e->getResponse();
+            return $this->toJson($response->getBody()->getContents());
+        }
+
     }
 
     public function b2_finish_large_file() {
         // to be implement
     }
 
-    public function b2_get_file_info() {
-        // to be implement
+    public function b2_get_file_info($options = array()) {
+
+        if (isset($options['fileName'])) {
+            if ($options['bucketId']) {
+                // hooo
+            }
+        }
+
+        if (!isset($options['fileId'])) {
+            return 'Please provide fileId or fileName';
+        }
+
+        $curl_opts = $this->preparePostField([
+            'fileId' => $options['fileId']
+        ]);
+
+        $response = $this->postRequest(__FUNCTION__, $curl_opts);
+        return $this->returnResponse($response);
+
     }
 
     public function b2_get_upload_part_url() {
         // to be implement
     }
 
-    public function b2_get_upload_url($options = []) {
+    public function b2_get_upload_url($options = array()) {
 
         if (isset($options['bucketName'])) {
             $bucketList = json_decode($this->b2_list_buckets(), true);
@@ -188,7 +227,7 @@ class B2API {
 
     }
 
-    public function b2_list_file_names(array $options) {
+    public function b2_list_file_names($options = []) {
 
         $fields = array();
         $fields['bucketId'] =  (isset($options['bucketName'])) ? $this->getBucketIdFromName($options['bucketName']) : $bucketId;
